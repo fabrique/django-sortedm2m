@@ -3,7 +3,7 @@
 
  Different than SelectFilter because this is coupled to the admin framework.
 
- Requires core.js, OrderdSelectBox.js and addevent.js.
+ Requires core.js and OrderedSelectBox.js
  */
 
 function findForm(node) {
@@ -14,14 +14,18 @@ function findForm(node) {
     return node;
 }
 
-var OrderdSelectFilter = {
+var OrderedSelectFilter = {
     init: function(field_id, field_name, is_stacked, admin_media_prefix) {
 
         if (field_id.match(/__prefix__/)){
             // Don't intialize on empty forms.
             return;
         }
+
         var from_box = document.getElementById(field_id);
+
+        if(!from_box) { return; }
+
         from_box.id += '_from'; // change its ID
         from_box.className = 'filtered';
 
@@ -59,15 +63,15 @@ var OrderdSelectFilter = {
         var filter_input = quickElement('input', filter_p, '', 'type', 'text');
         filter_input.id = field_id + '_input';
         selector_available.appendChild(from_box);
-        var choose_all = quickElement('a', selector_available, gettext('Choose all'), 'href', 'javascript: (function(){ OrderdSelectBox.move_all("' + field_id + '_from", "' + field_id + '_to"); })()');
+        var choose_all = quickElement('a', selector_available, gettext('Choose all'), 'href', 'javascript: (function(){ OrderedSelectBox.move_all("' + field_id + '_from", "' + field_id + '_to"); })()');
         choose_all.className = 'selector-chooseall';
 
         // <ul class="selector-chooser">
         var selector_chooser = quickElement('ul', selector_div, '');
         selector_chooser.className = 'selector-chooser';
-        var add_link = quickElement('a', quickElement('li', selector_chooser, ''), gettext('Add'), 'href', 'javascript: (function(){ OrderdSelectBox.move("' + field_id + '_from","' + field_id + '_to");})()');
+        var add_link = quickElement('a', quickElement('li', selector_chooser, ''), gettext('Add'), 'href', 'javascript: (function(){ OrderedSelectBox.move("' + field_id + '_from","' + field_id + '_to");})()');
         add_link.className = 'selector-add';
-        var remove_link = quickElement('a', quickElement('li', selector_chooser, ''), gettext('Remove'), 'href', 'javascript: (function(){ OrderdSelectBox.move("' + field_id + '_to","' + field_id + '_from");})()');
+        var remove_link = quickElement('a', quickElement('li', selector_chooser, ''), gettext('Remove'), 'href', 'javascript: (function(){ OrderedSelectBox.move("' + field_id + '_to","' + field_id + '_from");})()');
         remove_link.className = 'selector-remove';
 
         // <div class="selector-chosen">
@@ -79,21 +83,21 @@ var OrderdSelectFilter = {
         quickElement('img', selector_filter, '', 'src', admin_media_prefix + (is_stacked ? 'img/admin/selector_stacked-add.gif':'img/admin/selector-add.gif'), 'alt', 'Add');
         var to_box = quickElement('select', selector_chosen, '', 'id', field_id + '_to', 'multiple', 'multiple', 'size', from_box.size, 'name', from_box.getAttribute('name'));
         to_box.className = 'filtered';
-        var clear_all = quickElement('a', selector_chosen, gettext('Clear all'), 'href', 'javascript: (function() { OrderdSelectBox.move_all("' + field_id + '_to", "' + field_id + '_from");})()');
+        var clear_all = quickElement('a', selector_chosen, gettext('Clear all'), 'href', 'javascript: (function() { OrderedSelectBox.move_all("' + field_id + '_to", "' + field_id + '_from");})()');
         clear_all.className = 'selector-clearall';
 
         from_box.setAttribute('name', from_box.getAttribute('name') + '_old');
 
         // Set up the JavaScript event handlers for the select box filter interface
-        addEvent(filter_input, 'keyup', function(e) { OrderdSelectFilter.filter_key_up(e, field_id); });
-        addEvent(filter_input, 'keydown', function(e) { OrderdSelectFilter.filter_key_down(e, field_id); });
-        addEvent(from_box, 'dblclick', function() { OrderdSelectBox.move(field_id + '_from', field_id + '_to'); });
-        addEvent(to_box, 'dblclick', function() { OrderdSelectBox.move(field_id + '_to', field_id + '_from'); });
-        addEvent(findForm(from_box), 'submit', function() { OrderdSelectBox.select_all(field_id + '_to'); });
-        OrderdSelectBox.init(field_id + '_from');
-        OrderdSelectBox.init(field_id + '_to');
+        addEvent(filter_input, 'keyup', function(e) { OrderedSelectFilter.filter_key_up(e, field_id); });
+        addEvent(filter_input, 'keydown', function(e) { OrderedSelectFilter.filter_key_down(e, field_id); });
+        addEvent(from_box, 'dblclick', function() { OrderedSelectBox.move(field_id + '_from', field_id + '_to'); });
+        addEvent(to_box, 'dblclick', function() { OrderedSelectBox.move(field_id + '_to', field_id + '_from'); });
+        addEvent(findForm(from_box), 'submit', function() { OrderedSelectBox.select_all(field_id + '_to'); });
+        OrderedSelectBox.init(field_id + '_from');
+        OrderedSelectBox.init(field_id + '_to');
         // Move selected from_box options to to_box
-        OrderdSelectBox.move(field_id + '_from', field_id + '_to');
+        OrderedSelectBox.move(field_id + '_from', field_id + '_to');
 
     },
     filter_key_up: function(event, field_id) {
@@ -101,12 +105,12 @@ var OrderdSelectFilter = {
         // don't submit form if user pressed Enter
         if ((event.which && event.which == 13) || (event.keyCode && event.keyCode == 13)) {
             from.selectedIndex = 0;
-            OrderdSelectBox.move(field_id + '_from', field_id + '_to');
+            OrderedSelectBox.move(field_id + '_from', field_id + '_to');
             from.selectedIndex = 0;
             return false;
         }
         var temp = from.selectedIndex;
-        OrderdSelectBox.filter(field_id + '_from', document.getElementById(field_id + '_input').value);
+        OrderedSelectBox.filter(field_id + '_from', document.getElementById(field_id + '_input').value);
         from.selectedIndex = temp;
         return true;
     },
@@ -115,7 +119,7 @@ var OrderdSelectFilter = {
         // right arrow -- move across
         if ((event.which && event.which == 39) || (event.keyCode && event.keyCode == 39)) {
             var old_index = from.selectedIndex;
-            OrderdSelectBox.move(field_id + '_from', field_id + '_to');
+            OrderedSelectBox.move(field_id + '_from', field_id + '_to');
             from.selectedIndex = (old_index == from.length) ? from.length - 1 : old_index;
             return false;
         }

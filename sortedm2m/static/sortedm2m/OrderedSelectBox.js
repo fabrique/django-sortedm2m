@@ -1,21 +1,21 @@
-var OrderdSelectBox = {
+var OrderedSelectBox = {
     cache: new Object(),
     init: function(id) {
         var box = document.getElementById(id);
         var node;
         
-        OrderdSelectBox.cache[id] = new Array();
-        var cache = OrderdSelectBox.cache[id];
+        OrderedSelectBox.cache[id] = new Array();
+        var cache = OrderedSelectBox.cache[id];
         for (var i = 0; (node = box.options[i]); i++) {
-            OrderdSelectBox.add_to_cache(id, node);
+            OrderedSelectBox.add_to_cache(id, node);
         }
     },
     redisplay: function(id) {
         // Repopulate HTML select box from cache
         var box = document.getElementById(id);
         box.options.length = 0; // clear all options
-        for (var i = 0, j = OrderdSelectBox.cache[id].length; i < j; i++) {
-            var node = OrderdSelectBox.cache[id][i];
+        for (var i = 0, j = OrderedSelectBox.cache[id].length; i < j; i++) {
+            var node = OrderedSelectBox.cache[id][i];
             if (node.displayed) {
                 box.options[box.options.length] = new Option(node.text, node.value, false, false);
             }
@@ -26,7 +26,7 @@ var OrderdSelectBox = {
         // the words in text. (It's an AND search.)
         var tokens = text.toLowerCase().split(/\s+/);
         var node, token;
-        for (var i = 0; (node = OrderdSelectBox.cache[id][i]); i++) {
+        for (var i = 0; (node = OrderedSelectBox.cache[id][i]); i++) {
             node.displayed = 1;
             for (var j = 0; (token = tokens[j]); j++) {
                 if (node.text.toLowerCase().indexOf(token) == -1) {
@@ -34,21 +34,21 @@ var OrderdSelectBox = {
                 }
             }
         }
-        OrderdSelectBox.redisplay(id);
+        OrderedSelectBox.redisplay(id);
     },
     delete_from_cache: function(id, value) {
         var node, delete_index = null;
-        for (var i = 0; (node = OrderdSelectBox.cache[id][i]); i++) {
+        for (var i = 0; (node = OrderedSelectBox.cache[id][i]); i++) {
             if (node.value == value) {
                 delete_index = i;
                 break;
             }
         }
-        var j = OrderdSelectBox.cache[id].length - 1;
+        var j = OrderedSelectBox.cache[id].length - 1;
         for (var i = delete_index; i < j; i++) {
-            OrderdSelectBox.cache[id][i] = OrderdSelectBox.cache[id][i+1];
+            OrderedSelectBox.cache[id][i] = OrderedSelectBox.cache[id][i+1];
         }
-        OrderdSelectBox.cache[id].length--;
+        OrderedSelectBox.cache[id].length--;
     },
     add_to_cache: function(id, option) {
       
@@ -57,17 +57,17 @@ var OrderdSelectBox = {
           order = parseInt( option.getAttribute('data-sort-value') );
         };
         
-        OrderdSelectBox.cache[id].push({value: option.value, text: option.text, displayed: 1, order: order });
+        OrderedSelectBox.cache[id].push({value: option.value, text: option.text, displayed: 1, order: order });
         
         // Re-order on sort-order-value (every time)
-        OrderdSelectBox.cache[id].sort(function(a, b){
+        OrderedSelectBox.cache[id].sort(function(a, b){
           return a.order - b.order;
         });
     },
     cache_contains: function(id, value) {
         // Check if an item is contained in the cache
         var node;
-        for (var i = 0; (node = OrderdSelectBox.cache[id][i]); i++) {
+        for (var i = 0; (node = OrderedSelectBox.cache[id][i]); i++) {
             if (node.value == value) {
                 return true;
             }
@@ -80,19 +80,19 @@ var OrderdSelectBox = {
         var option;
 
         // Remove sort-order-value before move:
-        for (var i = 0; (option = OrderdSelectBox.cache[to][i]); i++) {
+        for (var i = 0; (option = OrderedSelectBox.cache[to][i]); i++) {
           option.order = 0;
         }
 
         for (var i = 0; (option = from_box.options[i]); i++) {
-            if (option.selected && OrderdSelectBox.cache_contains(from, option.value)) {
+            if (option.selected && OrderedSelectBox.cache_contains(from, option.value)) {
                 //OrderdSelectBox.add_to_cache(to, {value: option.value, text: option.text, displayed: 1});
-                OrderdSelectBox.add_to_cache(to, option);
-                OrderdSelectBox.delete_from_cache(from, option.value);
+                OrderedSelectBox.add_to_cache(to, option);
+                OrderedSelectBox.delete_from_cache(from, option.value);
             }
         }
-        OrderdSelectBox.redisplay(from);
-        OrderdSelectBox.redisplay(to);
+        OrderedSelectBox.redisplay(from);
+        OrderedSelectBox.redisplay(to);
     },
     move_all: function(from, to) {
         var from_box = document.getElementById(from);
@@ -100,17 +100,17 @@ var OrderdSelectBox = {
         var option;
         
         for (var i = 0; (option = from_box.options[i]); i++) {
-            if (OrderdSelectBox.cache_contains(from, option.value)) {
+            if (OrderedSelectBox.cache_contains(from, option.value)) {
                 //OrderdSelectBox.add_to_cache(to, {value: option.value, text: option.text, displayed: 1});
-                OrderdSelectBox.add_to_cache(to, option);
-                OrderdSelectBox.delete_from_cache(from, option.value);
+                OrderedSelectBox.add_to_cache(to, option);
+                OrderedSelectBox.delete_from_cache(from, option.value);
             }
         }
-        OrderdSelectBox.redisplay(from);
-        OrderdSelectBox.redisplay(to);
+        OrderedSelectBox.redisplay(from);
+        OrderedSelectBox.redisplay(to);
     },
     sort: function(id) {
-        OrderdSelectBox.cache[id].sort( function(a, b) {
+        OrderedSelectBox.cache[id].sort( function(a, b) {
             a = a.text.toLowerCase();
             b = b.text.toLowerCase();
             try {
