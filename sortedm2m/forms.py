@@ -29,8 +29,8 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
 
     class Media:
         js = (settings.ADMIN_MEDIA_PREFIX + "js/core.js",
-          STATIC_URL + "sortedm2m/OrderdSelectBox.js",
-          STATIC_URL + "sortedm2m/OrderdSelectFilter.js")
+          STATIC_URL + "sortedm2m/OrderedSelectBox.js",
+          STATIC_URL + "sortedm2m/OrderedSelectFilter.js")
 
     def build_attrs(self, attrs=None, **kwargs):
         attrs = super(SortedFilteredSelectMultiple, self).\
@@ -50,9 +50,9 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         if options:
             output.append(options)
         output.append(u'</select>')
-        output.append(u'<script type="text/javascript">addEvent(window, "load", function(e) {')
-        output.append(u'OrderdSelectFilter.init("id_%s", "%s", %s, "%s"); });</script>\n' %\
-                      (name, name.replace('"', '\\"'), int(self.is_stacked), settings.ADMIN_MEDIA_PREFIX))
+        output.append(u'<script>addEvent(window, "load", function(e) {')
+        output.append(u'OrderedSelectFilter.init("id_%s", "%s", %s, "%s") });</script>\n' %\
+                      (name, name.split('-')[-1], int(self.is_stacked), settings.ADMIN_MEDIA_PREFIX))
         return mark_safe(u'\n'.join(output))
 
 
