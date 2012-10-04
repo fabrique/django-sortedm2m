@@ -86,7 +86,6 @@ var OrderedSelectBox = {
 
         for (var i = 0; (option = from_box.options[i]); i++) {
             if (option.selected && OrderedSelectBox.cache_contains(from, option.value)) {
-                //OrderdSelectBox.add_to_cache(to, {value: option.value, text: option.text, displayed: 1});
                 OrderedSelectBox.add_to_cache(to, option);
                 OrderedSelectBox.delete_from_cache(from, option.value);
             }
@@ -101,7 +100,6 @@ var OrderedSelectBox = {
         
         for (var i = 0; (option = from_box.options[i]); i++) {
             if (OrderedSelectBox.cache_contains(from, option.value)) {
-                //OrderdSelectBox.add_to_cache(to, {value: option.value, text: option.text, displayed: 1});
                 OrderedSelectBox.add_to_cache(to, option);
                 OrderedSelectBox.delete_from_cache(from, option.value);
             }
