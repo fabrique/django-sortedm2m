@@ -1,8 +1,37 @@
-ul.sortedm2m {
-    padding-left:3em !important;
-    margin-left:15em !important;
+
+/* Make the whole widget wider, to fit the extra buttons: */
+.selector {
+  width: 600px;
 }
 
-ul.sortedm2m + .add-another {
-    margin-left:18em !important;
+.selector ul.selector-orderer {
+  float: left;
+  width: 22px;
+  height: 50px;
+  margin: 8em 3px 0 3px;
+  padding: 0;
+  background: url('../../static/admin/img/admin/chooser-bg.gif') top center no-repeat;
 }
+
+.selector-orderer li {
+  list-style-type: none;
+  margin: 0;
+  padding: 3px;
+}
+
+.selector-up,
+.selector-down {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-indent: -3000px;
+}
+.selector-up {
+  background: url('selector-up.gif') top center no-repeat;
+}
+.selector-down {
+  background: url('selector-down.gif') top center no-repeat;
+}
+
