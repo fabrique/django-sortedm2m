@@ -121,6 +121,20 @@ var OrderedSelectBox = {
             return 0;
         } );
     },
+    orderUp: function(id) {
+      
+      $('#' + id).find('option:selected').each(function(){
+          $(this).insertBefore($(this).prev());
+      });
+        
+    },
+    orderDown: function(id) {
+
+      $('#' + id).find('option:selected').each(function(){
+       $(this).insertAfter($(this).next());
+      });
+
+    },
     select_all: function(id) {
         var box = document.getElementById(id);
         for (var i = 0; i < box.options.length; i++) {

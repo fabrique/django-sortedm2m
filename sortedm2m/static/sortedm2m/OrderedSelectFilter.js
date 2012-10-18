@@ -24,7 +24,9 @@ var OrderedSelectFilter = {
 
         var from_box = document.getElementById(field_id);
 
-        if(!from_box) { return; }
+        if(!from_box) {
+          return;
+        };
 
         from_box.id += '_from'; // change its ID
         from_box.className = 'filtered';
@@ -85,6 +87,15 @@ var OrderedSelectFilter = {
         to_box.className = 'filtered';
         var clear_all = quickElement('a', selector_chosen, gettext('Clear all'), 'href', 'javascript: (function() { OrderedSelectBox.move_all("' + field_id + '_to", "' + field_id + '_from");})()');
         clear_all.className = 'selector-clearall';
+
+        // <ul class="selector-orderer">
+        var selector_orderer = quickElement('ul', selector_div, '');
+        selector_orderer.className = 'selector-orderer';
+        var up_link = quickElement('a', quickElement('li', selector_orderer, ''), gettext('Up'), 'href', 'javascript: (function(){ OrderedSelectBox.orderUp("' + field_id + '_to");})()');
+        up_link.className = 'selector-up';
+        var down_link = quickElement('a', quickElement('li', selector_orderer, ''), gettext('Down'), 'href', 'javascript: (function(){ OrderedSelectBox.orderDown("' + field_id + '_to");})()');
+        down_link.className = 'selector-down';
+
 
         from_box.setAttribute('name', from_box.getAttribute('name') + '_old');
 
