@@ -29,7 +29,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
 
     class Media:
         css = {
-            'screen': (STATIC_URL + 'sortedm2m/widget.css')
+            'screen': (STATIC_URL + 'sortedm2m/widget.css',)
         }
         js = (settings.ADMIN_MEDIA_PREFIX + "js/core.js",
               STATIC_URL + "sortedm2m/OrderedSelectBox.js",
