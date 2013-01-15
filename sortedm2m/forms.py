@@ -31,7 +31,11 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         css = {
             'screen': (STATIC_URL + 'sortedm2m/widget.css',)
         }
-        js = (settings.ADMIN_MEDIA_PREFIX + "js/core.js",
+        try:
+            core_js = settings.ADMIN_MEDIA_PREFIX + "js/core.js"
+        except AttributeError:
+            core_js = STATIC_URL + "admin/js/core.js"
+        js = (core_js,
               STATIC_URL + "sortedm2m/OrderedSelectBox.js",
               STATIC_URL + "sortedm2m/OrderedSelectFilter.js")
 
