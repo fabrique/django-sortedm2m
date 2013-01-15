@@ -31,11 +31,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         css = {
             'screen': (STATIC_URL + 'sortedm2m/widget.css',)
         }
-        try:
-            core_js = settings.ADMIN_MEDIA_PREFIX + "js/core.js"
-        except AttributeError:
-            core_js = STATIC_URL + "admin/js/core.js"
-        js = (core_js,
+        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
               STATIC_URL + "sortedm2m/OrderedSelectBox.js",
               STATIC_URL + "sortedm2m/OrderedSelectFilter.js")
 
@@ -51,6 +47,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
     def render(self, name, value, attrs=None, choices=()):
         if attrs is None: attrs = {}
         if value is None: value = []
+        admin_media_prefix = getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/')
         final_attrs = self.build_attrs(attrs, name=name)
         output = [u'<select multiple="multiple"%s>' % flatatt(final_attrs)]
         options = self.render_options(choices, value)
@@ -59,7 +56,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         output.append(u'</select>')
         output.append(u'<script>addEvent(window, "load", function(e) {')
         output.append(u'OrderedSelectFilter.init("id_%s", "%s", %s, "%s") });</script>\n' %\
-                      (name, name.split('-')[-1], int(self.is_stacked), settings.ADMIN_MEDIA_PREFIX))
+                      (name, name.split('-')[-1], int(self.is_stacked), admin_media_prefix))
 
         prefix_name = name.split('-')[0]
         output.append(u"""
@@ -95,7 +92,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
             });
         })(django.jQuery)
         </script>""" % (
-        prefix_name, settings.ADMIN_MEDIA_PREFIX, settings.ADMIN_MEDIA_PREFIX, prefix_name, _('Add another'),
+        prefix_name, admin_media_prefix, admin_media_prefix, prefix_name, _('Add another'),
         name.split('-')[-1], prefix_name))
 
         return mark_safe(u'\n'.join(output))
