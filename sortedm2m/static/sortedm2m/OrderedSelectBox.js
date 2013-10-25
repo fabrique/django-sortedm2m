@@ -122,7 +122,6 @@ var OrderedSelectBox = {
         } );
     },
     orderUp: function(id) {
-      
       $('#' + id).find('option:selected').each(function(){
           $(this).insertBefore($(this).prev());
       });

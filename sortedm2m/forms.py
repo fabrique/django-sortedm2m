@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from django import VERSION as DJANGO_VERSION
 from itertools import chain
 from django.forms.util import flatatt
 from django.utils.datastructures import MergeDict, MultiValueDict
@@ -31,9 +32,17 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         css = {
             'screen': (STATIC_URL + 'sortedm2m/widget.css',)
         }
-        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
-              STATIC_URL + "sortedm2m/OrderedSelectBox.js",
-              STATIC_URL + "sortedm2m/OrderedSelectFilter.js")
+        if DJANGO_VERSION[:2] >= (1, 4):
+            css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
+
+        js = ('http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
+              getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
+              STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
+
+        if DJANGO_VERSION[:2] < (1, 4):
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',)
+        else:
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',)
 
     def build_attrs(self, attrs=None, **kwargs):
         attrs = super(SortedFilteredSelectMultiple, self).\
