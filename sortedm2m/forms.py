@@ -14,7 +14,10 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 
-STATIC_URL = getattr(settings, 'STATIC_URL', settings.MEDIA_URL)
+STATIC_URL = getattr(settings, 'STATIC_URL')
+if not STATIC_URL:
+    STATIC_URL = settings.MEDIA_URL
+
 
 class SortedFilteredSelectMultiple(forms.SelectMultiple):
     """
