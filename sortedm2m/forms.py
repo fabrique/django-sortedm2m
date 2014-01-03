@@ -22,7 +22,9 @@ if not STATIC_URL:
 class SortedFilteredSelectMultiple(forms.SelectMultiple):
     """
     A SortableSelectMultiple with a JavaScript filter interface.
-
+	
+	Requires jQuery to be loaded.
+	
     Note that the resulting JavaScript assumes that the jsi18n
     catalog has been loaded in the page
     """
@@ -38,14 +40,15 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         if DJANGO_VERSION[:2] >= (1, 4):
             css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
 
-        js = ('http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
-              getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
+        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
               STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
 
         if DJANGO_VERSION[:2] < (1, 4):
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',)
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',
+                  'http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js')
         else:
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',)
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',
+                  'http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js')
 
     def build_attrs(self, attrs=None, **kwargs):
         attrs = super(SortedFilteredSelectMultiple, self).\
