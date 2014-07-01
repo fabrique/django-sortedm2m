@@ -1,16 +1,38 @@
 # -*- coding: utf-8 -*-
-from django import VERSION as DJANGO_VERSION
+from operator import attrgetter
+import sys
+
+import django
+from django.conf import settings
+from django.db import connections
 from django.db import router
+from django.db import transaction
 from django.db.models import signals
-from django.db.models.fields.related import add_lazy_relation, create_many_related_manager
+from django.db.models.fields.related import add_lazy_relation, create_many_related_manager, create_many_to_many_intermediary_model
 from django.db.models.fields.related import ManyToManyField, ReverseManyRelatedObjectsDescriptor
 from django.db.models.fields.related import RECURSIVE_RELATIONSHIP_CONSTANT
-from django.conf import settings
 from django.utils.functional import curry
-from sortedm2m.forms import SortedMultipleChoiceField
+
+from .forms import SortedMultipleChoiceField
 
 
 SORT_VALUE_FIELD_NAME = 'sort_value'
+
+
+if hasattr(transaction, 'atomic'):
+    atomic = transaction.atomic
+# Django 1.5 support
+# We mock the atomic context manager.
+else:
+    class atomic(object):
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            pass
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
 
 
 def create_sorted_many_to_many_intermediate_model(field, klass):
@@ -19,6 +41,7 @@ def create_sorted_many_to_many_intermediate_model(field, klass):
     if isinstance(field.rel.to, basestring) and field.rel.to != RECURSIVE_RELATIONSHIP_CONSTANT:
         to_model = field.rel.to
         to = to_model.split('.')[-1]
+
         def set_managed(field, model, cls):
             field.rel.through._meta.managed = model._meta.managed or cls._meta.managed
         add_lazy_relation(klass, field, to_model, set_managed)
@@ -35,79 +58,141 @@ def create_sorted_many_to_many_intermediate_model(field, klass):
         from_ = 'from_%s' % to.lower()
         to = 'to_%s' % to.lower()
     else:
-        from_ = klass._meta.object_name.lower()
+        # Django 1.5 support.
+        if not hasattr(klass._meta, 'model_name'):
+            from_ = klass._meta.object_name.lower()
+        else:
+            from_ = klass._meta.model_name
         to = to.lower()
-    meta = type('Meta', (object,), {
+    options = {
         'db_table': field._get_m2m_db_table(klass._meta),
         'managed': managed,
         'auto_created': klass,
         'app_label': klass._meta.app_label,
+        'db_tablespace': klass._meta.db_tablespace,
         'unique_together': (from_, to),
-        'ordering': (SORT_VALUE_FIELD_NAME,),
+        'ordering': (field.sort_value_field_name,),
         'verbose_name': '%(from)s-%(to)s relationship' % {'from': from_, 'to': to},
         'verbose_name_plural': '%(from)s-%(to)s relationships' % {'from': from_, 'to': to},
+    }
+    # Django 1.6 support.
+    if hasattr(field.model._meta, 'apps'):
+        options.update({
+            'apps': field.model._meta.apps,
         })
+
+    meta = type(str('Meta'), (object,), options)
     # Construct and return the new class.
     def default_sort_value(name):
         model = models.get_model(klass._meta.app_label, name)
-        return model._default_manager.count()
+        # Django 1.5 support.
+        if django.VERSION < (1, 6):
+            return model._default_manager.count()
+        else:
+            from django.db.utils import OperationalError
+            try:
+                # We need to catch if the model is not yet migrated in the
+                # database. The default function is still called in this case while
+                # running the migration. So we mock the return value of 0.
+                return model._default_manager.count()
+            except OperationalError:
+                return 0
 
     default_sort_value = curry(default_sort_value, name)
 
-    return type(name, (models.Model,), {
+    # Django 1.5 support.
+    if django.VERSION < (1, 6):
+        foreignkey_field_kwargs = {}
+    else:
+        foreignkey_field_kwargs = dict(
+            db_tablespace=field.db_tablespace,
+            db_constraint=field.rel.db_constraint)
+
+    return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        from_: models.ForeignKey(klass, related_name='%s+' % name),
-        to: models.ForeignKey(to_model, related_name='%s+' % name),
-        SORT_VALUE_FIELD_NAME: models.IntegerField(default=default_sort_value),
-        '_sort_field_name': SORT_VALUE_FIELD_NAME,
+        from_: models.ForeignKey(klass, related_name='%s+' % name, **foreignkey_field_kwargs),
+        to: models.ForeignKey(to_model, related_name='%s+' % name, **foreignkey_field_kwargs),
+        field.sort_value_field_name: models.IntegerField(default=default_sort_value),
+        '_sort_field_name': field.sort_value_field_name,
         '_from_field_name': from_,
         '_to_field_name': to,
-        })
+    })
 
 
 def create_sorted_many_related_manager(superclass, rel):
     RelatedManager = create_many_related_manager(superclass, rel)
 
     class SortedRelatedManager(RelatedManager):
-        def get_query_set(self):
+        def get_queryset(self):
             # We use ``extra`` method here because we have no other access to
             # the extra sorting field of the intermediary model. The fields
             # are hidden for joins because we set ``auto_created`` on the
             # intermediary's meta options.
-            return super(SortedRelatedManager, self).\
-            get_query_set().\
-            extra(order_by=['%s.%s' % (
-                rel.through._meta.db_table,
-                rel.through._sort_field_name,
+            try:
+                return self.instance._prefetched_objects_cache[self.prefetch_cache_name]
+            except (AttributeError, KeyError):
+                # Django 1.5 support.
+                if not hasattr(RelatedManager, 'get_queryset'):
+                    queryset = super(SortedRelatedManager, self).get_query_set()
+                else:
+                    queryset = super(SortedRelatedManager, self).get_queryset()
+                return queryset.extra(order_by=['%s.%s' % (
+                    rel.through._meta.db_table,
+                    rel.through._sort_field_name,
                 )])
 
+        get_query_set = get_queryset
+
+        if not hasattr(RelatedManager, '_get_fk_val'):
+            @property
+            def _fk_val(self):
+                # Django 1.5 support.
+                if not hasattr(self, 'related_val'):
+                    return self._pk_val
+                return self.related_val[0]
+
         def _add_items(self, source_field_name, target_field_name, *objs):
-            # join_table: name of the m2m link table
-            # source_field_name: the PK fieldname in join_table for the source object
-            # target_field_name: the PK fieldname in join_table for the target object
+            # source_field_name: the PK fieldname in join table for the source object
+            # target_field_name: the PK fieldname in join table for the target object
             # *objs - objects to add. Either object instances, or primary keys of object instances.
 
             # If there aren't any objects, there is nothing to do.
             from django.db.models import Model
             if objs:
+                # Django uses a set here, we need to use a list to keep the
+                # correct ordering.
                 new_ids = []
                 for obj in objs:
                     if isinstance(obj, self.model):
                         if not router.allow_relation(obj, self.instance):
-                            raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
-                                             (obj, self.instance._state.db, obj._state.db))
-                        new_ids.append(obj.pk)
+                            raise ValueError(
+                                'Cannot add "%r": instance is on database "%s", value is on database "%s"' %
+                                (obj, self.instance._state.db, obj._state.db)
+                            )
+                        if hasattr(self, '_get_fk_val'):  # Django>=1.5
+                            fk_val = self._get_fk_val(obj, target_field_name)
+                            if fk_val is None:
+                                raise ValueError('Cannot add "%r": the value for field "%s" is None' %
+                                                 (obj, target_field_name))
+                            new_ids.append(self._get_fk_val(obj, target_field_name))
+                        else:  # Django<1.5
+                            new_ids.append(obj.pk)
                     elif isinstance(obj, Model):
-                        raise TypeError("'%s' instance expected" % self.model._meta.object_name)
+                        raise TypeError(
+                            "'%s' instance expected, got %r" %
+                            (self.model._meta.object_name, obj)
+                        )
                     else:
                         new_ids.append(obj)
-                db = router.db_for_write(self.through.__class__, instance=self.instance)
-                vals = self.through._default_manager.using(db).values_list(target_field_name, flat=True)
-                vals = vals.filter(**{
-                    source_field_name: self._pk_val,
-                    '%s__in' % target_field_name: new_ids,
-                    })
+
+                db = router.db_for_write(self.through, instance=self.instance)
+                vals = (self.through._default_manager.using(db)
+                        .values_list(target_field_name, flat=True)
+                        .filter(**{
+                            source_field_name: self._fk_val,
+                            '%s__in' % target_field_name: new_ids,
+                        }))
                 for val in vals:
                     if val in new_ids:
                         new_ids.remove(val)
@@ -117,67 +202,40 @@ def create_sorted_many_related_manager(superclass, rel):
                         _new_ids.append(pk)
                 new_ids = _new_ids
                 new_ids_set = set(new_ids)
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are inserting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=rel.through, action='pre_add',
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=new_ids_set)
+
+                with atomic(using=db, savepoint=False):
+                    if self.reverse or source_field_name == self.source_field_name:
+                        # Don't send the signal when we are inserting the
+                        # duplicate data row for symmetrical reverse entries.
+                        signals.m2m_changed.send(sender=rel.through, action='pre_add',
+                            instance=self.instance, reverse=self.reverse,
+                            model=self.model, pk_set=new_ids_set, using=db)
                     # Add the ones that aren't there already
-                sort_field_name = self.through._sort_field_name
-                sort_field = self.through._meta.get_field_by_name(sort_field_name)[0]
-                for obj_id in new_ids:
-                    self.through._default_manager.using(db).create(**{
-                        '%s_id' % source_field_name: self._pk_val,
-                        '%s_id' % target_field_name: obj_id,
-                        sort_field_name: sort_field.get_default(),
+                    sort_field_name = self.through._sort_field_name
+                    sort_field = self.through._meta.get_field_by_name(sort_field_name)[0]
+                    for obj_id in new_ids:
+                        self.through._default_manager.using(db).create(**{
+                            '%s_id' % source_field_name: self._fk_val,  # Django 1.5 compatibility
+                            '%s_id' % target_field_name: obj_id,
+                            sort_field_name: sort_field.get_default(),
                         })
-                if self.reverse or source_field_name == self.source_field_name:
-                    # Don't send the signal when we are inserting the
-                    # duplicate data row for symmetrical reverse entries.
-                    signals.m2m_changed.send(sender=rel.through, action='post_add',
-                        instance=self.instance, reverse=self.reverse,
-                        model=self.model, pk_set=new_ids_set)
+                    if self.reverse or source_field_name == self.source_field_name:
+                        # Don't send the signal when we are inserting the
+                        # duplicate data row for symmetrical reverse entries.
+                        signals.m2m_changed.send(sender=rel.through, action='post_add',
+                            instance=self.instance, reverse=self.reverse,
+                            model=self.model, pk_set=new_ids_set, using=db)
 
     return SortedRelatedManager
 
 
 class ReverseSortedManyRelatedObjectsDescriptor(ReverseManyRelatedObjectsDescriptor):
-    def __get__(self, instance, instance_type=None):
-        if instance is None:
-            return self
-
-        # Dynamically create a class that subclasses the related
-        # model's default manager.
-        rel_model=self.field.rel.to
-        superclass = rel_model._default_manager.__class__
-        RelatedManager = create_sorted_many_related_manager(superclass, self.field.rel)
-
-        init_kwargs = {
-            'model': rel_model,
-            'instance': instance,
-            'symmetrical': (self.field.rel.symmetrical and isinstance(instance, rel_model)),
-            'source_field_name': self.field.m2m_field_name(),
-            'target_field_name': self.field.m2m_reverse_field_name(),
-            'reverse': False,
-            }
-
-        if DJANGO_VERSION[:2] >= (1, 4):
-            init_kwargs['through'] = self.field.rel.through
-            init_kwargs['query_field_name'] = self.field.related_query_name()
-        else:
-            init_kwargs['core_filters'] = {'%s__pk' % self.field.related_query_name(): instance._get_pk_val()}
-        manager = RelatedManager(**init_kwargs)
-
-        return manager
-
-    def __set__(self, instance, value):
-        if instance is None:
-            raise AttributeError, "Manager must be accessed via instance"
-
-        manager = self.__get__(instance)
-        manager.clear()
-        manager.add(*value)
+    @property
+    def related_manager_cls(self):
+        return create_sorted_many_related_manager(
+            self.field.rel.to._default_manager.__class__,
+            self.field.rel
+        )
 
 
 class SortedManyToManyField(ManyToManyField):
@@ -191,6 +249,9 @@ class SortedManyToManyField(ManyToManyField):
     '''
     def __init__(self, to, sorted=True, **kwargs):
         self.sorted = sorted
+        self.sort_value_field_name = kwargs.pop(
+            'sort_value_field_name',
+            SORT_VALUE_FIELD_NAME)
         super(SortedManyToManyField, self).__init__(to, **kwargs)
         if self.sorted:
             self.help_text = kwargs.get('help_text', None)
@@ -229,11 +290,12 @@ class SortedManyToManyField(ManyToManyField):
                 field.rel.through = model
             add_lazy_relation(cls, self, self.rel.through, resolve_through_model)
 
-        if isinstance(self.rel.to, basestring):
-            target = self.rel.to
-        else:
-            target = self.rel.to._meta.db_table
-        cls._meta.duplicate_targets[self.column] = (target, "m2m")
+        if hasattr(cls._meta, 'duplicate_targets'):  # Django<1.5
+            if isinstance(self.rel.to, basestring):
+                target = self.rel.to
+            else:
+                target = self.rel.to._meta.db_table
+            cls._meta.duplicate_targets[self.column] = (target, "m2m")
 
     def formfield(self, **kwargs):
         defaults = {}
