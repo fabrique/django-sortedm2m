@@ -230,13 +230,53 @@ def create_sorted_many_related_manager(superclass, rel):
 
 
 class ReverseSortedManyRelatedObjectsDescriptor(ReverseManyRelatedObjectsDescriptor):
+    """
+    Readded __get__ and __set__ from older version of sortedm2m to keep django 1.3 compatibility
+    This commit introduced the incompatibility:
+    https://github.com/gregmuellegger/django-sortedm2m/commit/69c9d9ee313602cf109fd6f327ef4f149b2ad456
+    """
+    def __get__(self, instance, instance_type=None):
+        if instance is None:
+            return self
+
+        # Dynamically create a class that subclasses the related
+        # model's default manager.
+        rel_model=self.field.rel.to
+        superclass = rel_model._default_manager.__class__
+        RelatedManager = create_sorted_many_related_manager(superclass, self.field.rel)
+
+        init_kwargs = {
+            'model': rel_model,
+            'instance': instance,
+            'symmetrical': (self.field.rel.symmetrical and isinstance(instance, rel_model)),
+            'source_field_name': self.field.m2m_field_name(),
+            'target_field_name': self.field.m2m_reverse_field_name(),
+            'reverse': False,
+            }
+
+        if django.VERSION[:2] >= (1, 4):
+            init_kwargs['through'] = self.field.rel.through
+            init_kwargs['query_field_name'] = self.field.related_query_name()
+        else:
+            init_kwargs['core_filters'] = {'%s__pk' % self.field.related_query_name(): instance._get_pk_val()}
+        manager = RelatedManager(**init_kwargs)
+
+        return manager
+
+    def __set__(self, instance, value):
+        if instance is None:
+            raise AttributeError, "Manager must be accessed via instance"
+
+        manager = self.__get__(instance)
+        manager.clear()
+        manager.add(*value)
+
     @property
     def related_manager_cls(self):
         return create_sorted_many_related_manager(
             self.field.rel.to._default_manager.__class__,
             self.field.rel
         )
-
 
 class SortedManyToManyField(ManyToManyField):
     '''

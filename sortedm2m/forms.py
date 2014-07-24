@@ -93,7 +93,9 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                         });
                     }
                 }
-                $(rows).formset({
+                var rows = $(rows);
+                if(rows.length) {
+                    rows.formset({
                     prefix: "%s",
                     addText: "%s %s",
                     formCssClass: "dynamic-%s",
