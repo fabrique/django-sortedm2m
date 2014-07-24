@@ -40,8 +40,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         if DJANGO_VERSION[:2] >= (1, 4):
             css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
 
-        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
-              STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
+        js = (STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
 
         if DJANGO_VERSION[:2] < (1, 4):
             js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',
@@ -97,14 +96,15 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                 var rows = $(rows);
                 if(rows.length) {
                     rows.formset({
-                    prefix: "%s",
-                    addText: "%s %s",
-                    formCssClass: "dynamic-%s",
-                    deleteCssClass: "inline-deletelink",
-                    deleteText: "Remove",
-                    emptyCssClass: "empty-form",
-                    added: (function(row) {
-                        updateOrderedSelectFilter();
+                        prefix: "%s",
+                        addText: "%s %s",
+                        formCssClass: "dynamic-%s",
+                        deleteCssClass: "inline-deletelink",
+                        deleteText: "Remove",
+                        emptyCssClass: "empty-form",
+                        added: (function(row) {
+                            updateOrderedSelectFilter();
+                        })
                     });
                 }
             });
@@ -150,6 +150,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
             data = []
         initial_list = [force_unicode(value) for value in initial]
         return data != initial_list
+
 
 class SortedMultipleChoiceField(forms.ModelMultipleChoiceField):
     def __init__(self, queryset, cache_choices=False, required=True,
