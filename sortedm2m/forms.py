@@ -105,8 +105,8 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                     emptyCssClass: "empty-form",
                     added: (function(row) {
                         updateOrderedSelectFilter();
-                    })
-                });
+                    });
+                }
             });
         })(django.jQuery)
         </script>""" % (
