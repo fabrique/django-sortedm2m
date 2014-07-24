@@ -82,6 +82,7 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                 var updateOrderedSelectFilter = function() {
                     // If any SelectFilter widgets are a part of the new form,
                     // instantiate a new SelectFilter instance for it.
+                    // Used for FeinCMS and other inline model setups.
                     if (typeof OrderedSelectFilter != "undefined"){
                         $(".sortedm2m").each(function(index, value){
                             var namearr = value.name.split('-');
