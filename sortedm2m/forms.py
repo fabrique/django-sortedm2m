@@ -40,14 +40,15 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         if DJANGO_VERSION[:2] >= (1, 4):
             css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
 
-        js = (STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
+        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
+              STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
 
         if DJANGO_VERSION[:2] < (1, 4):
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',
-                  'http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js')
+            # requires jquery 1.6
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',)
         else:
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',
-                  'http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js')
+            # requires jquery 1.9
+            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',)
 
     def build_attrs(self, attrs=None, **kwargs):
         attrs = super(SortedFilteredSelectMultiple, self).\
@@ -81,7 +82,6 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                 var updateOrderedSelectFilter = function() {
                     // If any SelectFilter widgets are a part of the new form,
                     // instantiate a new SelectFilter instance for it.
-                    // Used for FeinCMS and other inline model setups.
                     if (typeof OrderedSelectFilter != "undefined"){
                         $(".sortedm2m").each(function(index, value){
                             var namearr = value.name.split('-');
@@ -93,20 +93,17 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                         });
                     }
                 }
-                var rows = $(rows);
-                if(rows.length) {
-                    rows.formset({
-                        prefix: "%s",
-                        addText: "%s %s",
-                        formCssClass: "dynamic-%s",
-                        deleteCssClass: "inline-deletelink",
-                        deleteText: "Remove",
-                        emptyCssClass: "empty-form",
-                        added: (function(row) {
-                            updateOrderedSelectFilter();
-                        })
-                    });
-                }
+                $(rows).formset({
+                    prefix: "%s",
+                    addText: "%s %s",
+                    formCssClass: "dynamic-%s",
+                    deleteCssClass: "inline-deletelink",
+                    deleteText: "Remove",
+                    emptyCssClass: "empty-form",
+                    added: (function(row) {
+                        updateOrderedSelectFilter();
+                    })
+                });
             });
         })(django.jQuery)
         </script>""" % (
@@ -150,7 +147,6 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
             data = []
         initial_list = [force_unicode(value) for value in initial]
         return data != initial_list
-
 
 class SortedMultipleChoiceField(forms.ModelMultipleChoiceField):
     def __init__(self, queryset, cache_choices=False, required=True,
