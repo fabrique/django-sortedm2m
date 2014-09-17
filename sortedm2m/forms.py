@@ -40,8 +40,8 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         if DJANGO_VERSION[:2] >= (1, 4):
             css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
 
-        js = (getattr(settings, 'ADMIN_MEDIA_PREFIX', STATIC_URL + 'admin/'),
-              STATIC_URL + "sortedm2m/OrderedSelectBox.js",)
+        js = (STATIC_URL + 'sortedm2m/OrderedSelectBox.js',
+              STATIC_URL + 'admin/js/SelectBox.js')
 
         if DJANGO_VERSION[:2] < (1, 4):
             # requires jquery 1.6
