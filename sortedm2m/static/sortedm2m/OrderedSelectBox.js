@@ -3,7 +3,7 @@ var OrderedSelectBox = {
     init: function(id) {
         var box = document.getElementById(id);
         var node;
-        
+
         OrderedSelectBox.cache[id] = new Array();
         var cache = OrderedSelectBox.cache[id];
         for (var i = 0; (node = box.options[i]); i++) {
@@ -51,14 +51,14 @@ var OrderedSelectBox = {
         OrderedSelectBox.cache[id].length--;
     },
     add_to_cache: function(id, option) {
-      
+
         var order = 0;
         if( option.getAttribute('data-sort-value') ) {
           order = parseInt( option.getAttribute('data-sort-value') );
-        };
-        
+        }
+
         OrderedSelectBox.cache[id].push({value: option.value, text: option.text, displayed: 1, order: order });
-        
+
         // Re-order on sort-order-value (every time)
         OrderedSelectBox.cache[id].sort(function(a, b){
           return a.order - b.order;
@@ -97,7 +97,7 @@ var OrderedSelectBox = {
         var from_box = document.getElementById(from);
         var to_box = document.getElementById(to);
         var option;
-        
+
         for (var i = 0; (option = from_box.options[i]); i++) {
             if (OrderedSelectBox.cache_contains(from, option.value)) {
                 OrderedSelectBox.add_to_cache(to, option);
@@ -125,7 +125,7 @@ var OrderedSelectBox = {
       $('#' + id).find('option:selected').each(function(){
           $(this).insertBefore($(this).prev());
       });
-        
+
     },
     orderDown: function(id) {
 
@@ -140,4 +140,38 @@ var OrderedSelectBox = {
             box.options[i].selected = 'selected';
         }
     }
+};
+
+// Overwrite dissmissAddAnotherPopup so the added item gets inserted in our OrderedSelectBox
+if (window.showAddAnotherPopup) {
+    var django_dismissAddAnotherPopup = window.dismissAddAnotherPopup;
+    window.dismissAddAnotherPopup = function (win, newId, newRepr) {
+        // newId and newRepr are expected to have previously been escaped by
+        // django.utils.html.escape.
+        newId = html_unescape(newId);
+        newRepr = html_unescape(newRepr);
+        var name = windowname_to_id(win.name);
+        var elem = document.getElementById(name);
+        if (elem) {
+            var elemName = elem.nodeName.toUpperCase();
+            if (elemName == 'SELECT') {
+                var o = new Option(newRepr, newId);
+                elem.options[elem.options.length] = o;
+                o.selected = true;
+            } else if (elemName == 'INPUT') {
+                if (elem.className.indexOf('vManyToManyRawIdAdminField') != -1 && elem.value) {
+                    elem.value += ',' + newId;
+                } else {
+                    elem.value = newId;
+                }
+            }
+        } else {
+            var toId = name + "_to";
+            elem = document.getElementById(toId);
+            var o = new Option(newRepr, newId);
+            OrderedSelectBox.add_to_cache(toId, o);
+            OrderedSelectBox.redisplay(toId);
+        }
+        win.close();
+    };
 }
