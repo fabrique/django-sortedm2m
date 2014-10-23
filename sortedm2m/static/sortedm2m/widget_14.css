@@ -1,6 +1,0 @@
-/* Django >1.4 override, different img location */
-
-.selector ul.selector-orderer {
-  margin: 10em 3px 0 3px;
-  background: url('../../static/admin/img/chooser-bg.gif') top center no-repeat;
-}

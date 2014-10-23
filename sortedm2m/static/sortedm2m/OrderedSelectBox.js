@@ -1,4 +1,6 @@
-var OrderedSelectBox = {
+
+(function($) {
+window.OrderedSelectBox = {
     cache: new Object(),
     init: function(id) {
         var box = document.getElementById(id);
@@ -175,3 +177,4 @@ if (window.showAddAnotherPopup) {
         win.close();
     };
 }
+})(django.jQuery);

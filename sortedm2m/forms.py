@@ -37,18 +37,11 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
         css = {
             'screen': (STATIC_URL + 'sortedm2m/widget.css',)
         }
-        if DJANGO_VERSION[:2] >= (1, 4):
-            css['screen'] += (STATIC_URL + 'sortedm2m/widget_14.css',)
 
         js = (STATIC_URL + 'sortedm2m/OrderedSelectBox.js',
-              STATIC_URL + 'admin/js/inlines.js')
-
-        if DJANGO_VERSION[:2] < (1, 4):
-            # requires jquery 1.6
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',)
-        else:
-            # requires jquery 1.9
-            js += (STATIC_URL + 'sortedm2m/OrderedSelectFilter_14.js',)
+              STATIC_URL + 'admin/js/inlines.js',
+              STATIC_URL + 'sortedm2m/OrderedSelectFilter.js',
+        )
 
     def build_attrs(self, attrs=None, **kwargs):
         attrs = super(SortedFilteredSelectMultiple, self).\

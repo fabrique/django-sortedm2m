@@ -1,7 +1,7 @@
 
 /* Make the whole widget wider, to fit the extra buttons: */
 .selector {
-  width: 600px;
+  width: 860px;
 }
 
 .selector ul.selector-orderer {
@@ -35,3 +35,14 @@
   background: url('selector-down.gif') top center no-repeat;
 }
 
+
+/* Django >1.4 override, different img location */
+.selector ul.selector-orderer {
+  margin: 10em 3px 0 3px;
+  background: url('../../static/admin/img/chooser-bg.gif') top center no-repeat;
+}
+
+/* Django >1.6 */
+.selector .selector-chosen select {
+  height: 223px;
+}
