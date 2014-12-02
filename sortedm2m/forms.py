@@ -1,25 +1,33 @@
 # -*- coding: utf-8 -*-
-from django import VERSION as DJANGO_VERSION
+import sys
 from itertools import chain
 from django.forms.util import flatatt
-from django.utils.datastructures import MergeDict, MultiValueDict
 from re import escape
 from django import forms
 from django.conf import settings
 from django.db.models.query import QuerySet
 from django.forms.models import ModelMultipleChoiceField
+from django.utils.datastructures import MultiValueDict, MergeDict
 from django.utils.encoding import force_unicode
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 
-STATIC_URL = getattr(settings, 'STATIC_URL')
-if not STATIC_URL:
-    STATIC_URL = settings.MEDIA_URL
+if sys.version_info[0] < 3:
+    iteritems = lambda d: iter(d.iteritems())
+    string_types = basestring,
+    str_ = unicode
+else:
+    iteritems = lambda d: iter(d.items())
+    string_types = str,
+    str_ = str
 
 
-class SortedFilteredSelectMultiple(forms.SelectMultiple):
+STATIC_URL = getattr(settings, 'STATIC_URL', settings.MEDIA_URL)
+
+
+class SortedFilteredSelectMultiple(forms.CheckboxSelectMultiple):
     """
     A SortableSelectMultiple with a JavaScript filter interface.
 	
@@ -105,7 +113,6 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
 
         return mark_safe(u'\n'.join(output))
 
-
     def render_option(self, selected_choices, option_value, option_label):
         option_value = force_unicode(option_value)
         selected_html = (option_value in selected_choices) and u' selected="selected"' or ''
@@ -133,6 +140,33 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
                 output.append(self.render_option(selected_choices, option_value, option_label))
         return u'\n'.join(output)
 
+    def value_from_datadict(self, data, files, name):
+        if isinstance(data, (MultiValueDict, MergeDict)):
+            value = data.getlist(name)
+        else:
+            value = data.get(name, None)
+        if isinstance(value, string_types):
+            return [v for v in value.split(',') if v]
+        return value
+
+
+class SortedMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def __init__(self, queryset, widget=None, *args, **kwargs):
+        if not widget:
+            widget = SortedFilteredSelectMultiple(
+                is_stacked=kwargs.get('is_stacked', False)
+            )
+        super(ModelMultipleChoiceField, self).__init__(queryset, None, widget=widget, *args, **kwargs)
+
+    def clean(self, value):
+        queryset = super(SortedMultipleChoiceField, self).clean(value)
+        if value is None or not isinstance(queryset, QuerySet):
+            return queryset
+        object_list = dict((
+            (str_(key), value)
+            for key, value in iteritems(queryset.in_bulk(value))))
+        return [object_list[str_(pk)] for pk in value]
+
     def _has_changed(self, initial, data):
         if initial is None:
             initial = []
@@ -140,26 +174,3 @@ class SortedFilteredSelectMultiple(forms.SelectMultiple):
             data = []
         initial_list = [force_unicode(value) for value in initial]
         return data != initial_list
-
-class SortedMultipleChoiceField(forms.ModelMultipleChoiceField):
-    def __init__(self, queryset, cache_choices=False, required=True,
-                 widget=None, label=None, initial=None,
-                 help_text=None, *args, **kwargs):
-        if not widget:
-            widget = SortedFilteredSelectMultiple(
-                is_stacked=kwargs.get('is_stacked', False)
-            )
-        super(ModelMultipleChoiceField, self).__init__(queryset, None,
-            cache_choices, required, widget, label, initial, help_text,
-            *args, **kwargs)
-
-    def clean(self, value):
-        queryset = super(SortedMultipleChoiceField, self).clean(value)
-        if value is None or not isinstance(queryset, QuerySet):
-            return queryset
-
-        object_list = dict((
-            (unicode(key), value)
-            for key, value in queryset.in_bulk(value).iteritems()))
-
-        return [object_list[unicode(pk)] for pk in value]
