@@ -51,13 +51,15 @@ var OrderedSelectFilter = {
         // <div class="selector-available">
         var selector_available = quickElement('div', selector_div, '');
         selector_available.className = 'selector-available';
-        quickElement('h2', selector_available, interpolate(gettext('Available %s'), [field_name]));
+        var title_available = quickElement('h2', selector_available, interpolate(gettext('Available %s') + ' ', [field_name]));
+        quickElement('img', title_available, '', 'src', admin_media_prefix + 'img/icon-unknown.gif', 'width', '10', 'height', '10', 'class', 'help help-tooltip', 'title', interpolate(gettext('This is the list of available %s. You may choose some by selecting them in the box below and then clicking the "Choose" arrow between the two boxes.'), [field_name]));
+
         var filter_p = quickElement('p', selector_available, '');
         filter_p.className = 'selector-filter';
 
         var search_filter_label = quickElement('label', filter_p, '', 'for', field_id + "_input", 'style', 'width:16px;padding:2px');
 
-        var search_selector_img = quickElement('img', search_filter_label, '', 'src', admin_media_prefix + 'img/admin/selector-search.gif');
+        var search_selector_img = quickElement('img', search_filter_label, '', 'src', admin_media_prefix + 'img/selector-search.gif');
         search_selector_img.alt = gettext("Filter");
 
         filter_p.appendChild(document.createTextNode(' '));
@@ -79,10 +81,9 @@ var OrderedSelectFilter = {
         // <div class="selector-chosen">
         var selector_chosen = quickElement('div', selector_div, '');
         selector_chosen.className = 'selector-chosen';
-        quickElement('h2', selector_chosen, interpolate(gettext('Chosen %s'), [field_name]));
-        var selector_filter = quickElement('p', selector_chosen, gettext('Select your choice(s) and click '));
-        selector_filter.className = 'selector-filter';
-        quickElement('img', selector_filter, '', 'src', admin_media_prefix + (is_stacked ? 'img/admin/selector_stacked-add.gif':'img/admin/selector-add.gif'), 'alt', 'Add');
+        var title_chosen = quickElement('h2', selector_chosen, interpolate(gettext('Chosen %s') + ' ', [field_name]));
+        quickElement('img', title_chosen, '', 'src', admin_media_prefix + 'img/icon-unknown.gif', 'width', '10', 'height', '10', 'class', 'help help-tooltip', 'title', interpolate(gettext('This is the list of chosen %s. You may remove some by selecting them in the box below and then clicking the "Remove" arrow between the two boxes.'), [field_name]));
+
         var to_box = quickElement('select', selector_chosen, '', 'id', field_id + '_to', 'multiple', 'multiple', 'size', from_box.size, 'name', from_box.getAttribute('name'));
         to_box.className = 'filtered';
         var clear_all = quickElement('a', selector_chosen, gettext('Clear all'), 'href', 'javascript: (function() { OrderedSelectBox.move_all("' + field_id + '_to", "' + field_id + '_from");})()');
@@ -110,6 +111,32 @@ var OrderedSelectFilter = {
         // Move selected from_box options to to_box
         OrderedSelectBox.move(field_id + '_from', field_id + '_to');
 
+        if (!is_stacked) {
+            // In horizontal mode, give the same height to the two boxes.
+            var j_from_box = $(from_box);
+            var j_to_box = $(to_box);
+            var resize_filters = function() { j_to_box.height($(filter_p).outerHeight() + j_from_box.outerHeight()); }
+            if (j_from_box.outerHeight() > 0) {
+                resize_filters(); // This fieldset is already open. Resize now.
+            } else {
+                // This fieldset is probably collapsed. Wait for its 'show' event.
+                j_to_box.closest('fieldset').one('show.fieldset', resize_filters);
+            }
+        }
+        // Initial icon refresh
+        OrderedSelectFilter.refresh_icons(field_id);
+    },
+    refresh_icons: function(field_id) {
+        var from = $('#' + field_id + '_from');
+        var to = $('#' + field_id + '_to');
+        var is_from_selected = from.find('option:selected').length > 0;
+        var is_to_selected = to.find('option:selected').length > 0;
+        // Active if at least one item is selected
+        $('#' + field_id + '_add_link').toggleClass('active', is_from_selected);
+        $('#' + field_id + '_remove_link').toggleClass('active', is_to_selected);
+        // Active if the corresponding box isn't empty
+        $('#' + field_id + '_add_all_link').toggleClass('active', from.find('option').length > 0);
+        $('#' + field_id + '_remove_all_link').toggleClass('active', to.find('option').length > 0);
     },
     filter_key_up: function(event, field_id) {
         from = document.getElementById(field_id + '_from');
