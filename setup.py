@@ -4,11 +4,7 @@ import codecs
 import os
 import re
 import sys
-from setuptools import find_packages, setup
-
-
-def read(*parts):
-    return codecs.open(os.path.join(os.path.dirname(__file__), *parts)).read()
+from setuptools import setup
 
 
 def find_version(*file_paths):
@@ -20,25 +16,43 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+def read(*parts):
+    return codecs.open(os.path.join(os.path.dirname(__file__), *parts),
+                       encoding='utf8').read()
+
+
+try:
+    bytes
+except NameError:
+    bytes = str
+
+
 class UltraMagicString(object):
     '''
     Taken from
     http://stackoverflow.com/questions/1162338/whats-the-right-way-to-use-unicode-metadata-in-setup-py
     '''
     def __init__(self, value):
+        if not isinstance(value, bytes):
+            value = value.encode('utf8')
         self.value = value
 
-    def __str__(self):
+    def __bytes__(self):
         return self.value
 
     def __unicode__(self):
         return self.value.decode('UTF-8')
 
+    if sys.version_info[0] < 3:
+        __str__ = __bytes__
+    else:
+        __str__ = __unicode__
+
     def __add__(self, other):
-        return UltraMagicString(self.value + str(other))
+        return UltraMagicString(self.value + bytes(other))
 
     def split(self, *args, **kw):
-        return self.value.split(*args, **kw)
+        return str(self).split(*args, **kw)
 
 
 long_description = UltraMagicString('\n\n'.join((
@@ -70,7 +84,10 @@ setup(
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
     ],
     install_requires = [],
-    test_suite='sortedm2m_tests.SetupTestSuite',
 )

@@ -54,7 +54,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.doc.XViewMiddleware',
 )
 
 ROOT_URLCONF = 'example.urls'
@@ -70,16 +69,34 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.staticfiles',
 
-    'south',
-
     'sortedm2m',
     'sortedm2m_tests',
-    'sortedm2m_tests.sortedm2m_field',
-    'sortedm2m_tests.sortedm2m_form',
-    'sortedm2m_tests.south_support',
+    'sortedm2m_tests.migrations_tests',
+    'sortedm2m_tests.altersortedmanytomanyfield_tests',
 
     'example.testapp',
 )
+
+MIGRATION_MODULES = {
+    'migrations_tests': 'sortedm2m_tests.migrations_tests.django17_migrations',
+    'altersortedmanytomanyfield_tests': 'sortedm2m_tests.altersortedmanytomanyfield_tests.django17_migrations',
+}
+
+import django
+
+if django.VERSION >= (1, 6):
+    TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+
+# Only test south for django versions lower as 1.7
+# 1.7 introduced it's own migrations framework
+if django.VERSION < (1, 7):
+    INSTALLED_APPS = INSTALLED_APPS + (
+        'south',
+        'test_south_support',
+        'test_south_support.south_support_new_model',
+        'test_south_support.south_support_new_field',
+        'test_south_support.south_support_custom_sort_field_name',
+    )
 
 try:
     from local_settings import *

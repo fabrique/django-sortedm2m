@@ -1,21 +1,42 @@
 language: python
-python:
-  - "2.5"
-  - "2.6"
-  - "2.7"
-  - "pypy"
 env:
-  - DJANGO_VERSION=1.3.1
-  - DJANGO_VERSION=1.4
+  - TOX_ENV=py26-15
+  - TOX_ENV=py26-16
+  - TOX_ENV=py27-15
+  - TOX_ENV=py27-16
+  - TOX_ENV=py27-17
+  - TOX_ENV=py27-18
+  - TOX_ENV=py27-18-postgres
+  - TOX_ENV=py27-18-mysql
+  - TOX_ENV=pypy-15
+  - TOX_ENV=pypy-16
+  - TOX_ENV=pypy-17
+  - TOX_ENV=pypy-18
+  - TOX_ENV=pypy-18-mysql
+  - TOX_ENV=py32-16
+  - TOX_ENV=py32-17
+  - TOX_ENV=py32-18
+  - TOX_ENV=py33-16
+  - TOX_ENV=py33-17
+  - TOX_ENV=py33-18
+  - TOX_ENV=py34-16
+  - TOX_ENV=py34-17
+  - TOX_ENV=py34-18
+  - TOX_ENV=py34-18-postgres
 before_install:
   - export PIP_USE_MIRRORS=true
-  - export PIP_INDEX_URL=https://simple.crate.io/
   - export DJANGO_SETTINGS_MODULE=test_settings
-install:
-  - pip install -e .
-  - pip install -r requirements/tests.txt Django==$DJANGO_VERSION
+  - sudo pip install tox
+  # Postgres setup.
+  - sudo apt-get install postgresql postgresql-client
+  - # Password is 'sortedm2m'
+  - echo "CREATE ROLE sortedm2m PASSWORD 'md5ba287bde612ca41b14776ec8f8dfdaa9' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;" | sudo -u postgres psql
+  - echo "CREATE DATABASE sortedm2m OWNER sortedm2m;" | sudo -u postgres psql
+  # MySQL setup.
+  - echo "CREATE USER 'sortedm2m'@'localhost' IDENTIFIED BY 'sortedm2m';" | mysql -u root
+  - echo "GRANT ALL PRIVILEGES ON *.* TO 'sortedm2m'@'localhost' WITH GRANT OPTION;" | mysql -u root
 script:
-  - python setup.py test
+  - tox -e $TOX_ENV -v
 branches:
   only:
     - master

@@ -11,3 +11,7 @@ Contributors
 * Sean O'Connor
 * Flavio Curella
 * Florian Ilgenfritz
+* Antti Kaihola
+* Mike Knoop
+* Marcin Ossowski
+* Rubén Díaz

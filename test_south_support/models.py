@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.db import models
 from sortedm2m.fields import SortedManyToManyField
 
@@ -20,14 +21,6 @@ class Gallery(models.Model):
 class UnsortedGallery(models.Model):
     name = models.CharField(max_length=30)
     photos = SortedManyToManyField(Photo, sorted=False)
-
-    def __unicode__(self):
-        return self.name
-
-
-class PhotoStream(models.Model):
-    name = models.CharField(max_length=30)
-    photos = SortedManyToManyField(Photo, sorted=True)
 
     def __unicode__(self):
         return self.name
