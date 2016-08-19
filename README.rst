@@ -1,4 +1,4 @@
-When using ``django=<1.7`` use sortedm2m-filter-horizontal-widget_.
+When using ``django>=1.7`` use sortedm2m-filter-horizontal-widget_.
 
 .. _sortedm2m-filter-horizontal-widget: https://github.com/svleeuwen/sortedm2m-filter-horizontal-widget
 
